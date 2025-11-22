@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Services;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreServiceRequest;
+use App\Http\Requests\UpdateServiceRequest;
 
 class ServiceController extends Controller
 {
@@ -20,9 +22,9 @@ class ServiceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreServiceRequest $request)
     {
-        $services = Services::create($request->all());
+        $services = Services::create($request->validated());
         return response()->json($services, 201);
     }
 
@@ -38,10 +40,10 @@ class ServiceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateServiceRequest $request, string $id)
     {
         $service = Services::findOrFail($id);
-        $service->update($request->all());
+        $service->update($request->validated());
         return response()->json($service, 200);
     }
 
