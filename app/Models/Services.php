@@ -13,5 +13,13 @@ class Services extends Model
     protected $fillable = [
         'name',
         'description',
+        'price',
+        'estimated_time',
+        'type',
+        'status',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
     ];
 }
