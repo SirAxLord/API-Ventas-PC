@@ -5,7 +5,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\ServiceController;
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('throttle:api')->group(function () {
 	// Rutas públicas de lectura
 	Route::apiResource('products', ProductController::class)->only(['index','show']);
 	Route::apiResource('services', ServiceController::class)->only(['index','show']);
