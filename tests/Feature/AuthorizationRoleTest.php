@@ -24,7 +24,7 @@ class AuthorizationRoleTest extends TestCase
             'name' => 'Test Prod',
             'price' => 10,
         ];
-        $response = $this->actingAs($customer)->postJson('/v1/products', $payload);
+        $response = $this->actingAs($customer)->postJson('/api/v1/products', $payload);
         $response->assertStatus(403);
     }
 
@@ -35,7 +35,7 @@ class AuthorizationRoleTest extends TestCase
             'name' => 'Admin Prod',
             'price' => 99.5,
         ];
-        $response = $this->actingAs($admin)->postJson('/v1/products', $payload);
+        $response = $this->actingAs($admin)->postJson('/api/v1/products', $payload);
         $response->assertCreated();
         $this->assertDatabaseHas('products', ['name' => 'Admin Prod']);
     }
@@ -46,7 +46,7 @@ class AuthorizationRoleTest extends TestCase
             'name' => 'Guest Prod',
             'price' => 5,
         ];
-        $response = $this->postJson('/v1/products', $payload);
+        $response = $this->postJson('/api/v1/products', $payload);
         $response->assertStatus(401); // No autenticado
     }
 }
