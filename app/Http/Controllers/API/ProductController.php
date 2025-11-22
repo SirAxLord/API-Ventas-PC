@@ -4,26 +4,76 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Products;
+use App\Http\Resources\ProductResource;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Products::all();
-        return response()->json($products, 200);
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 15;
+
+        $query = Products::query();
+
+        if ($search = $request->get('search')) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+        if ($category = $request->get('category')) {
+            $query->where('category', $category);
+        }
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+        if ($minPrice = $request->get('min_price')) {
+            if (is_numeric($minPrice)) {
+                $query->where('price', '>=', (float) $minPrice);
+            }
+        }
+        if ($maxPrice = $request->get('max_price')) {
+            if (is_numeric($maxPrice)) {
+                $query->where('price', '<=', (float) $maxPrice);
+            }
+        }
+        if ($minStock = $request->get('min_stock')) {
+            if (is_numeric($minStock)) {
+                $query->where('stock', '>=', (int) $minStock);
+            }
+        }
+
+        // Ordenación segura
+        $allowedSorts = ['name','price','created_at'];
+        $sort = $request->get('sort');
+        $direction = strtolower($request->get('direction','desc')) === 'asc' ? 'asc' : 'desc';
+        if ($sort && in_array($sort, $allowedSorts, true)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $products = $query->paginate($perPage);
+        return ProductResource::collection($products)->additional([
+            'meta' => [
+                'version' => 'v1'
+            ]
+        ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $product = Products::create($request->all());
-        return response()->json($product, 201);
+        $product = Products::create($request->validated());
+        return (new ProductResource($product))
+            ->additional(['meta' => ['version' => 'v1']])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -32,17 +82,17 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Products::findOrFail($id);
-        return response()->json($product, 200);
+        return (new ProductResource($product))->additional(['meta' => ['version' => 'v1']]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateProductRequest $request, string $id)
     {
         $product = Products::findOrFail($id);
-        $product->update($request->all());
-        return response()->json($product, 200);
+        $product->update($request->validated());
+        return (new ProductResource($product))->additional(['meta' => ['version' => 'v1']]);
     }
 
     /**
@@ -52,6 +102,6 @@ class ProductController extends Controller
     {
         $product = Products::findOrFail($id);
         $product->delete();
-        return response()->json(null, 204);
+        return response()->json([], 204);
     }
 }

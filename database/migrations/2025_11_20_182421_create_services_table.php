@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->decimal('price', 10, 2)->nullable();
+            $table->unsignedInteger('estimated_time')->nullable(); // minutos estimados
+            $table->string('type')->nullable(); // mantenimiento, reparacion, software
+            $table->string('status')->default('active');
             $table->timestamps();
         });
     }

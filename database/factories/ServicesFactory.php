@@ -16,8 +16,15 @@ class ServicesFactory extends Factory
      */
     public function definition(): array
     {
+        $types = ['mantenimiento','reparacion','software','diagnostico','actualizacion'];
+        $status = $this->faker->boolean(92) ? 'active' : 'inactive';
         return [
-            //
+            'name' => ucfirst($this->faker->words(2, true)),
+            'description' => $this->faker->sentence(15),
+            'price' => $this->faker->randomFloat(2, 5, 500),
+            'estimated_time' => $this->faker->numberBetween(15, 240), // minutos
+            'type' => $this->faker->randomElement($types),
+            'status' => $status,
         ];
     }
 }

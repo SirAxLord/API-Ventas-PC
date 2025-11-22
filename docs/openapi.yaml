@@ -1,0 +1,487 @@
+openapi: 3.0.3
+info:
+  title: API Ventas y Servicios (v1)
+  version: 1.0.0
+  description: |
+    API REST para catálogo de productos y servicios de una tienda de computación.
+    - Autenticación con Sanctum (Bearer Token)
+    - Respuestas estandarizadas con meta.version y estructura Resource.
+    Nota: `cost_price` existe internamente pero no se expone en respuestas públicas.
+servers:
+  - url: http://localhost:8000/v1
+    description: Entorno local desarrollo
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Autenticación
+  - name: Productos
+  - name: Servicios
+
+paths:
+  /auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión y obtener token Sanctum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      tags: [Autenticación]
+      summary: Revocar token actual
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Token revocado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /products:
+    get:
+      tags: [Productos]
+      summary: Listar productos con filtros y paginación
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Búsqueda por nombre parcial
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: min_price
+          schema: { type: number, format: float }
+        - in: query
+          name: max_price
+          schema: { type: number, format: float }
+        - in: query
+          name: min_stock
+          schema: { type: integer, minimum: 0 }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [name, price, created_at] }
+        - in: query
+          name: direction
+          schema: { type: string, enum: [asc, desc] }
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Lista paginada de productos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProduct'
+    post:
+      tags: [Productos]
+      summary: Crear nuevo producto
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResource'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /products/{id}:
+    get:
+      tags: [Productos]
+      summary: Obtener producto por ID
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResource'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Productos]
+      summary: Actualizar producto
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResource'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Productos]
+      summary: Eliminar producto
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204': { description: Eliminado }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /services:
+    get:
+      tags: [Servicios]
+      summary: Listar servicios con filtros y paginación
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: min_price
+          schema: { type: number, format: float }
+        - in: query
+          name: max_price
+          schema: { type: number, format: float }
+        - in: query
+          name: min_time
+          schema: { type: integer, minimum: 0 }
+        - in: query
+          name: max_time
+          schema: { type: integer, minimum: 0 }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [name, price, estimated_time, created_at] }
+        - in: query
+          name: direction
+          schema: { type: string, enum: [asc, desc] }
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Lista paginada de servicios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedService'
+    post:
+      tags: [Servicios]
+      summary: Crear nuevo servicio
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '201':
+          description: Servicio creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResource'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /services/{id}:
+    get:
+      tags: [Servicios]
+      summary: Obtener servicio por ID
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '200':
+          description: Servicio encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResource'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Servicios]
+      summary: Actualizar servicio
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdate'
+      responses:
+        '200':
+          description: Servicio actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResource'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Servicios]
+      summary: Eliminar servicio
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '204': { description: Eliminado }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    ServiceId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    Unauthorized:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Error de validación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+  schemas:
+    Meta:
+      type: object
+      properties:
+        version: { type: string }
+        timestamp: { type: string, format: date-time }
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message: { type: string }
+            status: { type: integer }
+            details:
+              type: object
+              additionalProperties: true
+        meta:
+          $ref: '#/components/schemas/Meta'
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        sku: { type: string }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        price: { type: number, format: float }
+        stock: { type: integer }
+        image_url: { type: string }
+        status: { type: string, enum: [active, inactive] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Service:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, format: float }
+        estimated_time: { type: integer }
+        type: { type: string }
+        status: { type: string, enum: [active, inactive] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ProductResource:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Product'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    ServiceResource:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Service'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    PaginatedLinks:
+      type: object
+      properties:
+        first: { type: string, nullable: true }
+        last: { type: string, nullable: true }
+        prev: { type: string, nullable: true }
+        next: { type: string, nullable: true }
+    PaginatedMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        from: { type: integer, nullable: true }
+        last_page: { type: integer }
+        path: { type: string }
+        per_page: { type: integer }
+        to: { type: integer, nullable: true }
+        total: { type: integer }
+        version: { type: string }
+    PaginatedProduct:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        links:
+          $ref: '#/components/schemas/PaginatedLinks'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+    PaginatedService:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+        links:
+          $ref: '#/components/schemas/PaginatedLinks'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+    ProductCreate:
+      type: object
+      required: [name, price]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, format: float, minimum: 0 }
+        stock: { type: integer, minimum: 0 }
+        status: { type: string, enum: [active, inactive] }
+        category: { type: string }
+        image_url: { type: string }
+    ProductUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, format: float, minimum: 0 }
+        stock: { type: integer, minimum: 0 }
+        status: { type: string, enum: [active, inactive] }
+        category: { type: string }
+        image_url: { type: string }
+    ServiceCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, format: float, minimum: 0 }
+        estimated_time: { type: integer, minimum: 0 }
+        type: { type: string }
+        status: { type: string, enum: [active, inactive] }
+    ServiceUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, format: float, minimum: 0 }
+        estimated_time: { type: integer, minimum: 0 }
+        type: { type: string }
+        status: { type: string, enum: [active, inactive] }
