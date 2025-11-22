@@ -20,12 +20,40 @@ class ProductController extends Controller
         $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 15;
 
         $query = Products::query();
-        // Filtros básicos iniciales (más adelante se ampliarán): búsqueda por nombre y categoría
+
         if ($search = $request->get('search')) {
             $query->where('name', 'like', "%{$search}%");
         }
         if ($category = $request->get('category')) {
             $query->where('category', $category);
+        }
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+        if ($minPrice = $request->get('min_price')) {
+            if (is_numeric($minPrice)) {
+                $query->where('price', '>=', (float) $minPrice);
+            }
+        }
+        if ($maxPrice = $request->get('max_price')) {
+            if (is_numeric($maxPrice)) {
+                $query->where('price', '<=', (float) $maxPrice);
+            }
+        }
+        if ($minStock = $request->get('min_stock')) {
+            if (is_numeric($minStock)) {
+                $query->where('stock', '>=', (int) $minStock);
+            }
+        }
+
+        // Ordenación segura
+        $allowedSorts = ['name','price','created_at'];
+        $sort = $request->get('sort');
+        $direction = strtolower($request->get('direction','desc')) === 'asc' ? 'asc' : 'desc';
+        if ($sort && in_array($sort, $allowedSorts, true)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('created_at', 'desc');
         }
 
         $products = $query->paginate($perPage);

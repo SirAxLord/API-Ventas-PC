@@ -26,6 +26,39 @@ class ServiceController extends Controller
         if ($type = $request->get('type')) {
             $query->where('type', $type);
         }
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+        if ($minPrice = $request->get('min_price')) {
+            if (is_numeric($minPrice)) {
+                $query->where('price', '>=', (float) $minPrice);
+            }
+        }
+        if ($maxPrice = $request->get('max_price')) {
+            if (is_numeric($maxPrice)) {
+                $query->where('price', '<=', (float) $maxPrice);
+            }
+        }
+        if ($minTime = $request->get('min_time')) {
+            if (is_numeric($minTime)) {
+                $query->where('estimated_time', '>=', (int) $minTime);
+            }
+        }
+        if ($maxTime = $request->get('max_time')) {
+            if (is_numeric($maxTime)) {
+                $query->where('estimated_time', '<=', (int) $maxTime);
+            }
+        }
+
+        // Ordenación segura
+        $allowedSorts = ['name','price','estimated_time','created_at'];
+        $sort = $request->get('sort');
+        $direction = strtolower($request->get('direction','desc')) === 'asc' ? 'asc' : 'desc';
+        if ($sort && in_array($sort, $allowedSorts, true)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
 
         $services = $query->paginate($perPage);
         return ServiceResource::collection($services)->additional([
