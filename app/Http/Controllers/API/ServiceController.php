@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Services;
+use App\Http\Resources\ServiceResource;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
@@ -13,10 +14,25 @@ class ServiceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $services = Services::all();
-        return response()->json($services, 200);
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 15;
+
+        $query = Services::query();
+        if ($search = $request->get('search')) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+        if ($type = $request->get('type')) {
+            $query->where('type', $type);
+        }
+
+        $services = $query->paginate($perPage);
+        return ServiceResource::collection($services)->additional([
+            'meta' => [
+                'version' => 'v1'
+            ]
+        ]);
     }
 
     /**
@@ -24,8 +40,11 @@ class ServiceController extends Controller
      */
     public function store(StoreServiceRequest $request)
     {
-        $services = Services::create($request->validated());
-        return response()->json($services, 201);
+        $service = Services::create($request->validated());
+        return (new ServiceResource($service))
+            ->additional(['meta' => ['version' => 'v1']])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -34,7 +53,7 @@ class ServiceController extends Controller
     public function show(string $id)
     {
         $service = Services::findOrFail($id);
-        return response()->json($service, 200);
+        return (new ServiceResource($service))->additional(['meta' => ['version' => 'v1']]);
     }
 
     /**
@@ -44,7 +63,7 @@ class ServiceController extends Controller
     {
         $service = Services::findOrFail($id);
         $service->update($request->validated());
-        return response()->json($service, 200);
+        return (new ServiceResource($service))->additional(['meta' => ['version' => 'v1']]);
     }
 
     /**
@@ -54,6 +73,6 @@ class ServiceController extends Controller
     {
         $service = Services::findOrFail($id);
         $service->delete();
-        return response()->json(null, 204);
+        return response()->json([], 204);
     }
 }
