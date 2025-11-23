@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -90,5 +91,28 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $user->role,
         ]);
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $data = $request->validate([
+            'current_password' => ['required','string'],
+            'new_password' => ['required','string','min:6'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+        if (!Hash::check($data['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'La contraseña actual no coincide'
+            ], 422);
+        }
+
+        $user->password = $data['new_password']; // Cast "hashed" maneja el hash
+        $user->save();
+
+        return response()->json([
+            'message' => 'Contraseña actualizada correctamente'
+        ], 200);
     }
 }

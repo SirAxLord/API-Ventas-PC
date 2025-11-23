@@ -19,6 +19,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
 		// Perfil autenticado
 		Route::get('auth/me', [AuthController::class, 'me']);
+		Route::patch('auth/password', [AuthController::class, 'updatePassword']);
 
 		// Rutas solo admin (ya cubiertas por can:admin en grupo)
 		Route::get('users', [UserController::class, 'index']);
