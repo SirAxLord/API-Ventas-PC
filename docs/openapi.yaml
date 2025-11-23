@@ -6,9 +6,14 @@ info:
     API REST para catálogo de productos y servicios de una tienda de computación.
     - Autenticación con Sanctum (Bearer Token)
     - Respuestas estandarizadas con meta.version y estructura Resource.
-    Nota: `cost_price` existe internamente pero no se expone en respuestas públicas.
+    - Paginación consistente en listados.
+    Nota: `cost_price` existe internamente pero no se expone.
+    Roles:
+      - admin: CRUD productos/servicios + gestión usuarios/roles.
+      - customer: lectura pública + registro/login + perfil propio.
+      - guest: lectura pública sin token.
 servers:
-  - url: http://localhost:8000/v1
+  - url: http://localhost:8000/api/v1
     description: Entorno local desarrollo
 security:
   - bearerAuth: []
@@ -17,8 +22,35 @@ tags:
   - name: Autenticación
   - name: Productos
   - name: Servicios
+  - name: Usuarios
 
 paths:
+  /auth/register:
+    post:
+      tags: [Autenticación]
+      summary: Registrar nuevo usuario (rol customer)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name,email,password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+      responses:
+        '201':
+          description: Usuario creado + token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /auth/login:
     post:
       tags: [Autenticación]
@@ -61,6 +93,19 @@ paths:
           description: Token revocado
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [Autenticación]
+      summary: Perfil del usuario autenticado
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /products:
     get:
@@ -107,6 +152,7 @@ paths:
       summary: Crear nuevo producto
       security:
         - bearerAuth: []
+      x-roles: [admin]
       requestBody:
         required: true
         content:
@@ -144,6 +190,7 @@ paths:
       summary: Actualizar producto
       security:
         - bearerAuth: []
+      x-roles: [admin]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       requestBody:
@@ -170,6 +217,7 @@ paths:
       summary: Eliminar producto
       security:
         - bearerAuth: []
+      x-roles: [admin]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       responses:
@@ -226,6 +274,7 @@ paths:
       summary: Crear nuevo servicio
       security:
         - bearerAuth: []
+      x-roles: [admin]
       requestBody:
         required: true
         content:
@@ -263,6 +312,7 @@ paths:
       summary: Actualizar servicio
       security:
         - bearerAuth: []
+      x-roles: [admin]
       parameters:
         - $ref: '#/components/parameters/ServiceId'
       requestBody:
@@ -289,6 +339,56 @@ paths:
       summary: Eliminar servicio
       security:
         - bearerAuth: []
+      x-roles: [admin]
+
+  /users:
+    get:
+      tags: [Usuarios]
+      summary: Listar usuarios (admin)
+      security: [ { bearerAuth: [] } ]
+      x-roles: [admin]
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /users/{id}/role:
+    patch:
+      tags: [Usuarios]
+      summary: Actualizar rol de usuario (admin)
+      security: [ { bearerAuth: [] } ]
+      x-roles: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [admin, customer] }
+      responses:
+        '200': { description: Rol actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
       parameters:
         - $ref: '#/components/parameters/ServiceId'
       responses:
@@ -336,6 +436,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ValidationErrorResponse'
+    Forbidden:
+      description: Rol insuficiente
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
     Meta:
@@ -365,6 +471,7 @@ components:
         id: { type: integer }
         name: { type: string }
         email: { type: string }
+        role: { type: string, enum: [admin, customer] }
     Product:
       type: object
       properties:

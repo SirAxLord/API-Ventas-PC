@@ -1,36 +1,77 @@
 ## API Ventas-PC (Resumen del Proyecto)
 
-Esta instancia Laravel funciona como API REST para catálogo de **productos** y **servicios** de una tienda de computación.
+Instancia Laravel (API REST) para catálogo de **productos** y **servicios** con autenticación basada en tokens, control de roles y documentación OpenAPI.
 
 ### Características Implementadas
-- Versionado de rutas: prefijo `/v1`.
-- Recursos: `products`, `services` (CRUD con separación lectura pública / escritura protegida).
-- Validación con Form Requests (crear/actualizar productos y servicios).
-- Respuestas estandarizadas mediante API Resources (`ProductResource`, `ServiceResource`).
-- Filtros y ordenación avanzados (precio, stock, tipo, tiempo, estado, sort, direction, paginación `per_page`).
-- Autenticación con **Laravel Sanctum** (Bearer Token).
-- Rate limiting (`throttle:api` 60 req/min). 
+- Versionado: prefijo `/api/v1`.
+- Recursos: `products`, `services` (lectura pública, escritura sólo admin).
+- Roles: `admin`, `customer`, `guest` (no autenticado).
+- Validación con Form Requests (store/update).
+- Serialización uniforme con API Resources.
+- Filtros y ordenación: `search`, `category/type`, `status`, rangos `min_price`, `max_price`, `min_stock`, `max_stock`, `min_time`, `max_time`, `sort`, `direction`, paginación `per_page` (1–100).
+- Autenticación: **Laravel Sanctum** (Bearer Token).
+- Autorización: Policies y Gate `admin`; endpoints protegidos con verificación de rol.
+- Rate limiting: 60 req/min por usuario/IP (`throttle:api`).
 - CORS configurable vía `CORS_ALLOWED_ORIGINS`.
-- Manejo centralizado de errores con respuesta JSON uniforme.
-- Seeders y factories con datos realistas.
-- Pruebas Feature (CRUD + auth + filtros).
-- Documentación OpenAPI en `docs/openapi.yaml`.
+- Manejo centralizado de errores JSON (estructura fija de validación y errores genéricos).
+- Seeders + factories realistas (incluye usuario admin por defecto).
+- Pruebas Feature para auth, filtros, autorización y CRUD.
+- Documentación OpenAPI consolidada en `docs/openapi.yaml`.
+
+### Tabla de Roles y Permisos
+| Recurso / Acción | guest | customer | admin |
+|------------------|:-----:|:--------:|:-----:|
+| Listar productos/servicios | ✔ | ✔ | ✔ |
+| Ver detalle producto/servicio | ✔ | ✔ | ✔ |
+| Crear producto/servicio | ✖ | ✖ | ✔ |
+| Actualizar producto/servicio | ✖ | ✖ | ✔ |
+| Eliminar producto/servicio | ✖ | ✖ | ✔ |
+| Registrar usuario (`/auth/register`) | ✔ | ✔ | ✔ |
+| Ver perfil (`/auth/me`) | ✖ | ✔ | ✔ |
+| Listar usuarios | ✖ | ✖ | ✔ |
+| Cambiar rol usuario | ✖ | ✖ | ✔ |
 
 ### Endpoints Principales
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| POST | `/v1/auth/login` | Obtener token Sanctum | Público |
-| POST | `/v1/auth/logout` | Revocar token | Bearer |
-| GET | `/v1/products` | Listado productos (filtros) | Público |
-| GET | `/v1/products/{id}` | Detalle producto | Público |
-| POST | `/v1/products` | Crear producto | Bearer |
-| PUT | `/v1/products/{id}` | Actualizar producto | Bearer |
-| DELETE | `/v1/products/{id}` | Eliminar producto | Bearer |
-| GET | `/v1/services` | Listado servicios (filtros) | Público |
-| GET | `/v1/services/{id}` | Detalle servicio | Público |
-| POST | `/v1/services` | Crear servicio | Bearer |
-| PUT | `/v1/services/{id}` | Actualizar servicio | Bearer |
-| DELETE | `/v1/services/{id}` | Eliminar servicio | Bearer |
+| Método | Endpoint | Descripción | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/auth/register` | Registro nuevo usuario (customer) | guest, customer, admin |
+| POST | `/api/v1/auth/login` | Obtener token Sanctum | guest |
+| POST | `/api/v1/auth/logout` | Revocar token | customer, admin |
+| GET | `/api/v1/auth/me` | Perfil autenticado | customer, admin |
+| GET | `/api/v1/products` | Listado productos (filtros) | todos |
+| GET | `/api/v1/products/{id}` | Detalle producto | todos |
+| POST | `/api/v1/products` | Crear producto | admin |
+| PUT | `/api/v1/products/{id}` | Actualizar producto | admin |
+| DELETE | `/api/v1/products/{id}` | Eliminar producto | admin |
+| GET | `/api/v1/services` | Listado servicios (filtros) | todos |
+| GET | `/api/v1/services/{id}` | Detalle servicio | todos |
+| POST | `/api/v1/services` | Crear servicio | admin |
+| PUT | `/api/v1/services/{id}` | Actualizar servicio | admin |
+| DELETE | `/api/v1/services/{id}` | Eliminar servicio | admin |
+| GET | `/api/v1/users` | Listar usuarios | admin |
+| PATCH | `/api/v1/users/{id}/role` | Cambiar rol | admin |
+
+### Formato de Errores
+Errores genéricos:
+```json
+{
+	"error": {
+		"message": "Recurso no encontrado",
+		"code": 404
+	},
+	"meta": { "version": "v1" }
+}
+```
+Errores de validación (HTTP 422):
+```json
+{
+	"message": "Datos de entrada inválidos",
+	"errors": {
+		"name": ["El campo name es obligatorio."],
+		"price": ["El campo price debe ser numérico."]
+	}
+}
+```
 
 ### Variables de Entorno Clave
 ```
@@ -41,21 +82,27 @@ SANCTUM_STATEFUL_DOMAINS=localhost:3000
 SESSION_DOMAIN=localhost
 ```
 
-### Flujo de Autenticación
-1. `POST /v1/auth/login` con `email` y `password`.
-2. Recibir `token` y usar encabezado: `Authorization: Bearer <token>` para rutas protegidas.
-3. `POST /v1/auth/logout` para revocar.
+### Flujo de Autenticación y Registro
+1. `POST /api/v1/auth/register` (name, email, password) crea usuario rol `customer` y retorna token.
+2. `POST /api/v1/auth/login` obtiene nuevo token para credenciales válidas.
+3. Usar `Authorization: Bearer <token>` en endpoints protegidos.
+4. `GET /api/v1/auth/me` devuelve perfil y rol.
+5. `POST /api/v1/auth/logout` revoca token.
 
 ### Ejemplo de Petición (cURL)
 ```bash
-curl -X POST http://localhost:8000/v1/auth/login \
+curl -X POST http://localhost:8000/api/v1/auth/register \
 	-H "Content-Type: application/json" \
-	-d '{"email":"test@example.com","password":"password"}'
+	-d '{"name":"Juan","email":"juan@example.com","password":"secret123"}'
+
+curl -X POST http://localhost:8000/api/v1/auth/login \
+	-H "Content-Type: application/json" \
+	-d '{"email":"juan@example.com","password":"secret123"}'
 ```
 
 ### Ejemplo Listado con Filtros
 ```bash
-curl http://localhost:8000/v1/products?category=computadoras&min_price=500&sort=price&direction=asc
+curl "http://localhost:8000/api/v1/products?category=computadoras&min_price=500&sort=price&direction=asc&per_page=15"
 ```
 
 ### Estructura de Respuesta (Producto)
@@ -104,13 +151,17 @@ php artisan route:clear
 php artisan optimize:clear
 ```
 
-### Futuras Mejores Opcionales
-- Roles y policies (autorización granular).
-- Exposición de métricas (Prometheus / logs enriquecidos).
-- Webhooks para eventos de inventario.
-- Cache de respuestas frecuentes (productos más vistos).
+### Futuras Mejoras Opcionales
+- Métricas y observabilidad (Prometheus / OpenTelemetry).
+- Cache de consultas frecuentes (ej. Redis para listados más vistos).
+- Búsqueda avanzada (full-text / Elasticsearch).
+- Webhooks o colas para eventos de stock.
 
 ### Notas
-- `cost_price` no se expone en el Resource público para evitar filtrado de margen.
-- Para entornos con front-end SPA en otro dominio, ajustar `SANCTUM_STATEFUL_DOMAINS` y cookies si se usa autenticación basada en sesión.
+- `cost_price` no se expone para proteger margen.
+- Ajustar `SANCTUM_STATEFUL_DOMAINS` si se usan cookies en SPA; este proyecto usa tokens Bearer personales.
+- Revisar `docs/openapi.yaml` para detalles completos (incluye `x-roles` en operaciones protegidas).
+
+### Referencia Rápida OpenAPI -> Postman
+Se puede importar `docs/openapi.yaml` directamente en Postman / Insomnia para generar colección. Endpoints con seguridad requieren agregar encabezado `Authorization: Bearer <token>`.
 
