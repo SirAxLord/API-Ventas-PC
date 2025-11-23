@@ -9,8 +9,11 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
 class ProductController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
@@ -69,6 +72,7 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
+        $this->authorize('create', Products::class);
         $product = Products::create($request->validated());
         return (new ProductResource($product))
             ->additional(['meta' => ['version' => 'v1']])
@@ -91,6 +95,7 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, string $id)
     {
         $product = Products::findOrFail($id);
+        $this->authorize('update', $product);
         $product->update($request->validated());
         return (new ProductResource($product))->additional(['meta' => ['version' => 'v1']]);
     }
@@ -101,6 +106,7 @@ class ProductController extends Controller
     public function destroy(string $id)
     {
         $product = Products::findOrFail($id);
+        $this->authorize('delete', $product);
         $product->delete();
         return response()->json([], 204);
     }

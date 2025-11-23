@@ -9,8 +9,11 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
 class ServiceController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
@@ -73,6 +76,7 @@ class ServiceController extends Controller
      */
     public function store(StoreServiceRequest $request)
     {
+        $this->authorize('create', Services::class);
         $service = Services::create($request->validated());
         return (new ServiceResource($service))
             ->additional(['meta' => ['version' => 'v1']])
@@ -95,6 +99,7 @@ class ServiceController extends Controller
     public function update(UpdateServiceRequest $request, string $id)
     {
         $service = Services::findOrFail($id);
+        $this->authorize('update', $service);
         $service->update($request->validated());
         return (new ServiceResource($service))->additional(['meta' => ['version' => 'v1']]);
     }
@@ -105,6 +110,7 @@ class ServiceController extends Controller
     public function destroy(string $id)
     {
         $service = Services::findOrFail($id);
+        $this->authorize('delete', $service);
         $service->delete();
         return response()->json([], 204);
     }
