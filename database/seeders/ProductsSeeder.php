@@ -23,7 +23,7 @@ class ProductsSeeder extends Seeder
                 'price' => 1850.00,
                 'cost_price' => 1500.00,
                 'stock' => 12,
-                'image_url' => 'https://example.com/images/laptop-gamer.jpg',
+                'image_url' => 'https://tse4.mm.bing.net/th/id/OIP.Y5KUEItu9UIDhKgEbmLNkwHaFj?rs=1&pid=ImgDetMain&o=7&rm=3',
                 'status' => 'active',
             ],
             [
@@ -34,7 +34,7 @@ class ProductsSeeder extends Seeder
                 'price' => 120.00,
                 'cost_price' => 80.00,
                 'stock' => 40,
-                'image_url' => 'https://example.com/images/auriculares.jpg',
+                'image_url' => 'https://th.bing.com/th/id/R.e9a0f2ddc2cd813ee6754f5f17eb1ef3?rik=gRTT1G%2bHFG7TLA&pid=ImgRaw&r=0',
                 'status' => 'active',
             ],
             [
@@ -45,7 +45,7 @@ class ProductsSeeder extends Seeder
                 'price' => 95.50,
                 'cost_price' => 60.00,
                 'stock' => 75,
-                'image_url' => 'https://example.com/images/ssd-512.jpg',
+                'image_url' => 'https://th.bing.com/th/id/R.bd58cc2ee6999b010766b3b51f5a35c8?rik=YzYOfzqJRVh0Wg&pid=ImgRaw&r=0',
                 'status' => 'active',
             ],
             [
@@ -56,7 +56,7 @@ class ProductsSeeder extends Seeder
                 'price' => 950.00,
                 'cost_price' => 700.00,
                 'stock' => 25,
-                'image_url' => 'https://example.com/images/smartphone-pro.jpg',
+                'image_url' => 'https://tse4.mm.bing.net/th/id/OIP.zZ9f6ALI7eoD1AI1zvZdNgHaL7?rs=1&pid=ImgDetMain&o=7&rm=3',
                 'status' => 'active',
             ],
             [
@@ -67,7 +67,7 @@ class ProductsSeeder extends Seeder
                 'price' => 160.00,
                 'cost_price' => 120.00,
                 'stock' => 30,
-                'image_url' => 'https://example.com/images/monitor-24.jpg',
+                'image_url' => 'https://tse2.mm.bing.net/th/id/OIP.1hbiL4VyM3u3uIL0NpQiqwHaFK?rs=1&pid=ImgDetMain&o=7&rm=3',
                 'status' => 'active',
             ],
         ];
