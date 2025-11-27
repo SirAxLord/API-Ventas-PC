@@ -59,7 +59,5 @@ class ServicesSeeder extends Seeder
         foreach ($baseServices as $data) {
             Services::create($data);
         }
-
-        Services::factory(10)->create();
     }
 }

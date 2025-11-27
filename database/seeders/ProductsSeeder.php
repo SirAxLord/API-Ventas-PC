@@ -75,8 +75,5 @@ class ProductsSeeder extends Seeder
         foreach ($baseProducts as $data) {
             Products::create($data);
         }
-
-        // Productos adicionales aleatorios
-        Products::factory(15)->create();
     }
 }
