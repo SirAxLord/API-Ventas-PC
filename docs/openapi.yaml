@@ -385,18 +385,14 @@ paths:
               properties:
                 role: { type: string, enum: [admin, customer] }
       responses:
-        '200': { description: Rol actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '200':
+          description: Rol actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-      parameters:
-        - $ref: '#/components/parameters/ServiceId'
-      responses:
-        '204': { description: Eliminado }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
 
 components:
   securitySchemes:
